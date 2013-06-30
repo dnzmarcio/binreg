@@ -6,5 +6,8 @@ S3method(logLik, binreg)
 export(dprentice,pprentice,qprentice,rpretince,
        daranda,paranda,qaranda,raranda,
        dweib,pweib,qweib,rweib,
+       dcweib,pcweib,qcweib,rcweib,
        dstukel,pstukel,qstukel,rstukel,
-       binreg)
+       binreg,dataLD,ModelLogit,ModelCloglog,
+       ModelProbit,ModelAranda,ModelWeibull
+       ModelCWeibull,ModelPrentice,ModelStukel)
