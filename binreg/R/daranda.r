@@ -40,7 +40,7 @@ qaranda <- function(p, alpha = 1) {
 }
 
 # random generate from Aranda distribution
-raranda <- function(p, alpha = 1) {
+raranda <- function(n, alpha = 1) {
   if(length(alpha) != 1)
     stop("alpha = ", deparse(substitute(alpha)), " should have exactly one element.")
 
