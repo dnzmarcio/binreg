@@ -1,0 +1,10 @@
+
+S3method(print, binreg)
+S3method(summary, binreg)
+S3method(logLik, binreg)
+
+export(dprentice,pprentice,qprentice,rpretince,
+       daranda,paranda,qaranda,raranda,
+       dweib,pweib,qweib,rweib,
+       dstukel,pstukel,qstukel,rstukel,
+       binreg)
