@@ -42,7 +42,7 @@ qweib <- function(p, gamma = 1) {
 }
 
 # random generate from Weibull distribution
-rweib <- function(p, gamma = 1) {
+rweib <- function(n, gamma = 1) {
   if(length(gamma) != 1)
     stop("gamma = ", deparse(substitute(gamma)), " should have exactly one element.")
 
