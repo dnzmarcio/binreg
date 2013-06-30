@@ -15,12 +15,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-binreg <- function(formula, link = c("Aranda-Ordaz", "Weibull", "Prentice", "Stukel"), 
+binreg <- function(formula, link = c("Aranda-Ordaz", "Weibull", "CWeibull", "Prentice", "Stukel"), 
                    data, subset, start = NULL, tol = 1e-4, iterlim = 5000, na.action){
   
   call <- match.call()
   if(class(formula) != "formula")
-    stop("Invalid formula")
+    stop("Invalid formula.")
   if(missing(data)) 
     data <- environment(formula)
   if(!missing(subset))
@@ -28,11 +28,15 @@ binreg <- function(formula, link = c("Aranda-Ordaz", "Weibull", "Prentice", "Stu
   X    <- model.matrix(formula, data)
   resp <- model.frame(formula, data)[,1]
   resp <- factor(resp)
+
+  if (length(resp[resp == 0])+length(resp[resp==1]) != length(resp)) {
+    stop("Response must be a binary variable.")
+  }
   
   if(nlevels(resp) > 2)
-    warning("Number of levels greater than 2. The first one will be regressed against the others")
+    warning("Number of levels greater than 2. The first one will be regressed against the others.")
   if(nlevels(resp) < 2)
-    stop("Response has fewer than two levels")
+    stop("Response has fewer than two levels.")
   resp <- ifelse(resp == levels(resp)[1], 0, 1)
   
   link <- match.arg(link)
@@ -66,7 +70,7 @@ binreg <- function(formula, link = c("Aranda-Ordaz", "Weibull", "Prentice", "Stu
     fit$aic <- fit$aic + 2
   }
   
-  if(link == "Weibull"){
+  if(link == "Weibull") {
     gamma <- 3.6
     fit  <- glm(formula, binomial(weibull(gamma)), data, start = start)
     bet  <- coef(fit)
@@ -75,7 +79,7 @@ binreg <- function(formula, link = c("Aranda-Ordaz", "Weibull", "Prentice", "Stu
     
     while(((abs(cand$estimate - gamma) > tol) || (abs((cand$estimate - gamma)/gamma) > tol)) && (abs(fit$aic - aic) > tol)){
       if ((i >= 10) && (abs(fit$aic - aic) < tol) &&
-        (all(flag[(length(flag)-10):length(flag)] > 0))){
+        (all(flag[(length(flag)-10):length(flag)] > 0))) {
         warning("Link parameter is too large. Complementary log-log estimate returned.")
         fit <- glm(formula, binomial("cloglog"), data, na.action = na.action)
         fit$formula <- formula
@@ -97,12 +101,51 @@ binreg <- function(formula, link = c("Aranda-Ordaz", "Weibull", "Prentice", "Stu
       }
     }
   
-  gamma <- cand$estimate
-  fit <- glm(formula, binomial(weibull(gamma)), data, start = bet, na.action = na.action)
-  fit$link.par <- gamma
-  fit$link.err <- as.numeric(sqrt(1/cand$hessian))
-  names(fit$link.par) <- names(fit$link.err) <- "gamma"
-  fit$aic <- fit$aic + 2
+    gamma <- cand$estimate
+    fit <- glm(formula, binomial(weibull(gamma)), data, start = bet, na.action = na.action)
+    fit$link.par <- gamma
+    fit$link.err <- as.numeric(sqrt(1/cand$hessian))
+    names(fit$link.par) <- names(fit$link.err) <- "gamma"
+    fit$aic <- fit$aic + 2
+  }
+
+  if(link == "CWeibull"){
+    gamma <- 3.6
+    fit  <- glm(formula, binomial(cweibull(gamma)), data, start = start)
+    bet  <- coef(fit)
+    cand <- nlm(.lik.cweibull, gamma, beta = bet, y = resp, X = X)
+    flag <- 0.1
+    
+    while(((abs(cand$estimate - gamma) > tol) || (abs((cand$estimate - gamma)/gamma) > tol)) && (abs(fit$aic - aic) > tol)){
+      if ((i >= 10) && (abs(fit$aic - aic) < tol) &&
+        (all(flag[(length(flag)-10):length(flag)] > 0))){
+        warning("Link parameter is too large. Log-log estimate returned.")
+        fit <- glm(formula, binomial("loglog"), data, na.action = na.action)
+        fit$formula <- formula
+        fit$call <- call
+        return(fit)
+      }
+      
+      aic     <- fit$aic
+      gamma   <- cand$estimate
+      fit     <- glm(formula, binomial(cweibull(gamma)), data, start = bet)
+      bet     <- coef(fit)
+      cand    <- nlm(.lik.cweibull, gamma, beta = bet, y = resp, X = X, hessian = TRUE)
+      i       <- i + 1
+      flag[i] <- (cand$estimate - gamma)
+      
+      if(i == iterlim){
+        warning("Maximum iteration reached. Solution may not be optimal.")
+        break
+      }
+    }
+  
+    gamma <- cand$estimate
+    fit <- glm(formula, binomial(cweibull(gamma)), data, start = bet, na.action = na.action)
+    fit$link.par <- gamma
+    fit$link.err <- as.numeric(sqrt(1/cand$hessian))
+    names(fit$link.par) <- names(fit$link.err) <- "gamma"
+    fit$aic <- fit$aic + 2
   }
   
   if(link == "Prentice"){
@@ -190,7 +233,7 @@ logLik.binreg <- function(object, ...){
     warning("extra arguments discarded")
   
   link <- strtrim(object$family$link, 1)
-  p <- object$rank + switch(link, A = 1, W = 1, P = 2, S = 2)
+  p <- object$rank + switch(link, A = 1, W = 1, C = 1, P = 2, S = 2)
   
   val <- p - object$aic/2
   attr(val, "nobs") <- sum(!is.na(object$residuals))
@@ -216,6 +259,12 @@ summary.binreg <- function(object, ...){
     ans$coefficients <- rbind(ans$coefficients, gamma = c(object$link.par, object$link.err, zval, pval))
   }
   
+  if(link == "C"){
+    zval <- (object$link.par - 3.50215)/object$link.err
+    pval <- pchisq(zval^2, 1, lower.tail = FALSE)
+    ans$coefficients <- rbind(ans$coefficients, gamma = c(object$link.par, object$link.err, zval, pval))
+  }
+
   if(link == "P"){
     zval <- (object$link.par - 1)/object$link.err
     pval <- pchisq(zval^2, 1, lower.tail = FALSE)
