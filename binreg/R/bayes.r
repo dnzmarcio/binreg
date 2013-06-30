@@ -15,7 +15,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-dataLD <- function(formula, link = c("logit", "probit", "cloglog", "Aranda-Ordaz", "Weibull", "Prentice", "Stukel"), data, subset){
+dataLD <- function(formula, 
+                   link = c("logit", "probit", "cloglog", "Aranda-Ordaz", 
+                            "Weibull", "CWeibull", "Prentice", "Stukel"), data, subset){
   formula <- formula(formula)
   if(missing(data)) 
     data <- environment(formula)
@@ -24,6 +26,10 @@ dataLD <- function(formula, link = c("logit", "probit", "cloglog", "Aranda-Ordaz
   X    <- model.matrix(formula, data)
   resp <- model.frame(formula, data)[,1]
   resp <- factor(resp)
+
+  if (length(resp[resp == 0])+length(resp[resp==1]) != length(resp)) {
+    stop("Response must be a binary variable.")
+  }
   
   if(nlevels(resp) > 2)
     warning("Number of levels greater than 2. The first one will be regressed against the others.")
@@ -58,6 +64,11 @@ dataLD <- function(formula, link = c("logit", "probit", "cloglog", "Aranda-Ordaz
     model <- "ModelWeibull()"
   }
   
+  if(link == "CWeibull"){
+    parm.names <- as.parm.names(list(beta = rep(0, ncol(X)), gamma = 0))
+    model <- "ModelCWeibull()"
+  }
+
   if(link == "Prentice"){
     parm.names <- as.parm.names(list(beta = rep(0, ncol(X)), m = c(0, 0)))
     model <- "ModelPrentice()"
@@ -74,7 +85,7 @@ dataLD <- function(formula, link = c("logit", "probit", "cloglog", "Aranda-Ordaz
   print(data.frame(variable = colnames(X), parameter = parm.names[1:ncol(X)]), row.names = F)
   cat("\nLaplace's Demon suggests running the following code:\n\n")
   cat("fit = LaplacesDemon(", model, ", data, GIV(", model, ", data))\n\n", sep = "")
-  cat("Remember to substitute 'data' with the object returned by this function!")
+  cat("Remember to substitute 'data' with the object returned by this function!\n")
   
   invisible(dataset)
 }
@@ -96,12 +107,11 @@ ModelLogit <- function(parm, data, beta.mean = 0, beta.var = 1000){
     LL <- sum(dbern(data$y, mu, log = TRUE))
     ###log-posterior
     LP <- LL + sum(beta.prior)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, mu = eta, parm = parm)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
     return(Modelout)
   }
   return(Model)
 }
-
 
 ModelProbit <- function(parm, data, beta.mean = 0, beta.var = 1000){
   Model <- function(parm, data){
@@ -115,15 +125,14 @@ ModelProbit <- function(parm, data, beta.mean = 0, beta.var = 1000){
     LL <- sum(dbern(data$y, mu, log = TRUE))
     ###log-posterior
     LP <- LL + sum(beta.prior)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, mu = eta, parm = parm)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
     return(Modelout)
   }
   return(Model)
 }
 
-
-ModelCloglog <- function(parm, data, beta.mean = 0, beta.var = 1000){
-  Model <- function(parm, data){
+ModelCloglog <- function(parm, data, beta.mean = 0, beta.var = 1000) {
+  Model <- function(parm, data) {
     ###parameter
     beta <- parm[1:data$J]
     ###priors
@@ -134,12 +143,11 @@ ModelCloglog <- function(parm, data, beta.mean = 0, beta.var = 1000){
     LL <- sum(dbern(data$y, mu, log = TRUE))
     ###log-posterior
     LP <- LL + sum(beta.prior)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, mu = eta, parm = parm)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
     return(Modelout)
   }
   return(Model)
 }
-
 
 ModelAranda <- function(parm, data, beta.mean = 0, beta.var = 1000,
                         alpha.scale = 1e-10){
@@ -153,14 +161,13 @@ ModelAranda <- function(parm, data, beta.mean = 0, beta.var = 1000,
     ###logLik
     LL <- -.lik.aranda(alpha, beta, data$y, data$X)
     ###log-posterior
-    LP <- LL + sum(beta.prior) + alpha.prior 
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, mu = data$X %*% beta, parm = parm)
+    LP <- LL + sum(beta.prior) + alpha.prior
+    mu <- paranda(data$X %*% beta,alpha)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
     return(Modelout)
    }
    return(Model)
 }
-
-
 
 ModelWeibull <- function(parm, data, beta.mean = 0, beta.var = 1000, 
                         gamma.scale = 1e-10){
@@ -175,12 +182,32 @@ ModelWeibull <- function(parm, data, beta.mean = 0, beta.var = 1000,
     LL <- -.lik.weibull(gamma, beta, data$y, data$X)
     ###log-posterior
     LP <- LL + sum(beta.prior) + gamma.prior 
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, mu = data$X %*% beta, parm = parm)
+    mu <- pweib(data$X %*% beta,gamma)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
     return(Modelout)
   }
   return(Model)
 }
 
+ModelCWeibull <- function(parm, data, beta.mean = 0, beta.var = 1000, 
+                          gamma.scale = 1e-10){
+  Model <- function(parm, data){
+    ###parameter
+    beta <- parm[1:data$J]
+    gamma <- parm[data$J + 1]
+    ###priors
+    beta.prior <- dnormv(beta, beta.mean, beta.var, log = TRUE)
+    gamma.prior <- dhalfnorm(gamma, gamma.scale, log = TRUE)
+    ###logLik
+    LL <- -.lik.cweibull(gamma, beta, data$y, data$X)
+    ###log-posterior
+    LP <- LL + sum(beta.prior) + gamma.prior 
+    mu <- pcweib(data$X %*% beta,gamma)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
+    return(Modelout)
+  }
+  return(Model)
+}
 
 ModelPrentice <- function(parm, data, beta.mean = 0, beta.var = 1000, 
                           m.scale = 1e-10){
@@ -195,12 +222,12 @@ ModelPrentice <- function(parm, data, beta.mean = 0, beta.var = 1000,
     LL <- -.lik.prentice(m, beta, data$y, data$X)
     ###log-posterior
     LP <- LL + sum(beta.prior) + sum(m.prior)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, mu = data$X %*% beta, parm = parm)
+    mu <- pprentice(data$X %*% beta,m)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
     return(Modelout)
   }
   return(Model)
 }
-
 
 ModelStukel <- function(parm, data, beta.mean = 0, beta.var = 1000, 
                         alpha.mean = 0, alpha.var = 1000){
@@ -215,7 +242,8 @@ ModelStukel <- function(parm, data, beta.mean = 0, beta.var = 1000,
     LL <- -.lik.stukel(alpha, beta, data$y, data$X)
     ###log-posterior
     LP <- LL + sum(beta.prior) + sum(alpha.prior)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, mu = data$X %*% beta, parm = parm)
+    mu <- pstukel(data$X %*% beta,alpha)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
     return(Modelout)
   }
   return(Model)
