@@ -16,9 +16,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .lik.aranda <- function(alpha, beta, y, X) {
-  if(alpha > 0){
+  if(alpha > 0) {
     eta <- X %*% beta
-    aranda <- ifelse(alpha*exp(eta) > -1, 1 - (alpha*exp(eta) + 1)^(-1/alpha), 1)
+    aranda <- paranda(eta,alpha)
     aranda <- pmin(pmax(aranda, .Machine$double.eps), 1 - .Machine$double.eps)
     return(-sum(dbern(y, aranda, log = TRUE)))
   } else{
@@ -26,14 +26,25 @@
   }
 }
 
-
-.lik.weibull = function(gama, beta, y, X){
-  if (gama > 0) {
+.lik.weibull = function(gamma, beta, y, X){
+  if (gamma > 0) {
     eta <- X %*% beta
     eta <- pmax(eta, 0)
-    weibull <- 1 - exp(-eta^gama)
+    weibull <- pweib(eta,gamma)
     weibull <- pmin(pmax(weibull, .Machine$double.eps), 1 - .Machine$double.eps)
     return(-sum(dbern(y, weibull, log = TRUE)))
+  } else {
+    return(1e100)
+  }
+}
+
+.lik.cweibull = function(gamma, beta, y, X){
+  if (gamma > 0) {
+    eta <- X %*% beta
+    eta <- pmin(eta, 0)
+    cweibull <- pcweib(eta,gamma)
+    cweibull <- pmin(pmax(cweibull, .Machine$double.eps), 1 - .Machine$double.eps)
+    return(-sum(dbern(y, cweibull, log = TRUE)))
   } else {
     return(1e100)
   }
