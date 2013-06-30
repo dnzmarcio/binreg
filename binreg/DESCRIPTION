@@ -1,0 +1,11 @@
+Package: binreg
+Version: 1.0
+Date: 2013-06-30
+Title: binreg R package
+Author: Bernardo dos Santos <bpsantos@ime.usp.br>, Adriano Polpo <polpo@ufscar.br>, Carlos A. de B. Pereira <cpereira@ime.usp.br>
+Maintainer: Adriano Polpo <polpo@ufscar.br>
+Depends: R (>= 3.0.1), LaplacesDemon, stats, mcmc, coda, R.utils
+Description: This package contains functions used to perform the binary regression analysis.
+License: GPL (>= 3)
+Repository: CRAN
+URL: http://code.google.com/p/binreg/
