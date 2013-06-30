@@ -22,7 +22,7 @@ dstukel <- function(x,alpha = c(0,0)) {
   if(length(alpha) > 2)
     warning("Length of alpha = ", deparse(substitute(alpha)), "is greater than 2. Only the first two elements will be used.")
 
-  return( dlogis(hstukel(x, alpha))*.dhstukel(x, alpha) )
+  return( dlogis(.hstukel(x, alpha))*.dhstukel(x, alpha) )
 }
 
 # Stukel distribution function
@@ -46,7 +46,7 @@ qstukel <- function(p,alpha = c(0,0)) {
 }
 
 # random generate from Stukel distribution
-qstukel <- function(p,alpha = c(0,0)) {
+rstukel <- function(n,alpha = c(0,0)) {
   if(length(alpha) < 2)
     stop("alpha = ", deparse(substitute(alpha)), " should have exactly two elements.")
   if(length(alpha) > 2)
