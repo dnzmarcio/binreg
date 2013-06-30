@@ -40,6 +40,19 @@ weibull <- function(gamma){
             class = "link-glm")
 }
 
+# Link: cweibull
+cweibull <- function(gamma){
+  linkfun <- function(mu)  qcweib(mu,gamma)
+  linkinv <- function(eta) pcweib(eta,gamma)
+  mu.eta  <- function(eta) dcweib(eta,gamma)
+  link <- paste("CWeibull, gamma =", gamma)
+  valideta <- function(eta)
+    return(all(eta < 0))
+  structure(list(linkfun = linkfun, linkinv = linkinv,
+                 mu.eta = mu.eta, valideta = valideta, name = link), 
+            class = "link-glm")
+}
+
 # Link: prentice
 prentice <- function(m = c(1, 1)) {
   linkfun <- function(mu)  qprentice(mu,m)
