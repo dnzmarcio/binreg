@@ -48,6 +48,7 @@ loadlibs <- function(libdir=NULL) {
     source("../R/dstukel.r")
     source("../R/daranda.r")
     source("../R/dweib.r")
+    source("../R/dcweib.r")
     source("../R/lik.r")
     source("../R/link.r")
     source("../R/bayes.r")
