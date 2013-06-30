@@ -1,0 +1,16 @@
+citHeader("To cite binreg in publications please use:")
+
+citEntry(entry = "Article",
+  title        = "binreg R package",
+  author       = personList(person("Bernardo", "dos Santos"),
+                   as.person("Bernardo dos Santos"),
+                   as.person("Adriano Polpo"),
+                   as.person("Carlos A. de B. Pereira"),
+  journal      = "CRAN",
+  year         = "2013",
+  url          = "http://code.google.com/p/binreg/",
+  textVersion  =
+  paste("B. dos Santos, A. Polpo and C. A. de B. Pereira (2013).",
+        "binreg R package",
+        "URL http://code.google.com/p/binreg/.")
+)
