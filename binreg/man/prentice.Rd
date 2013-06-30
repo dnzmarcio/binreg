@@ -27,7 +27,7 @@
   \item{x, q}{vector of quantiles.}
   \item{p}{vector of probabilities.}
   \item{n}{number of observations.}
-  \item{m}{shape parameters.}
+  \item{m}{vector of size two with shape parameters.}
 }
 \details{
   The Prentice distribution with parameter m has density given by
