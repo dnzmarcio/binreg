@@ -18,11 +18,9 @@
 
 \title{Binary models for Bayesian analysis.}
 \description{
+  It is not to be directly used, but only with LaplacesDemon function.
   Binary models to be used with LaplacesDemon function to generate a sample from
   the posterior distribution of the model's parameters.
-}
-\usage{
-  It is not to be directly used, but only with LaplacesDemon function.
 }
 \details{
   It is a function with the binary regression models to facilitate de use of 
