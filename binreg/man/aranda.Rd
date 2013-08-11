@@ -37,18 +37,18 @@
   for alpha > 0.
 }
 \value{
-  `daranda' gives the density, `paranda' gives the distribution 
-  function, `qaranda' gives the quantile function, and `raranda'
+  'daranda' gives the density, 'paranda' gives the distribution 
+  function, 'qaranda' gives the quantile function, and 'raranda'
   generates random deviates.
 }
 \references{
   Aranda-Ordaz, F. J. (1981) \emph{On two families of transformations to 
-  additivity for binary response data}. Biometrika, 68(2):357–363.
+  additivity for binary response data}. Biometrika, 68(2):357-363.
 }
 \examples{
   set.seed(1234)
   alpha <- 2
   x <- seq(-5,5,0.01)
   y <- paranda(x,alpha)
-  plot(x,y,type="l",xlab="x",ylab="paranda")
+  plot(x,y,type='l',xlab='x',ylab='paranda')
 }
