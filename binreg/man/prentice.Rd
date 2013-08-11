@@ -37,13 +37,13 @@
   for m[1] > 0 and m[2] > 0, where B(a,b) is the Beta function.
 }
 \value{
-     `dprentice' gives the density, `pprentice' gives the distribution 
-     function, `qprentice' gives the quantile function, and `rprentice'
+     'dprentice' gives the density, 'pprentice' gives the distribution 
+     function, 'qprentice' gives the quantile function, and 'rprentice'
      generates random deviates.
 }
 \references{
   Prentice, R. L. (1975) \emph{Discrimination among some parametric models}.
-  Biometrika, 62(3):607–614.
+  Biometrika, 62(3):607-614.
 }
 \examples{
   set.seed(1234)
