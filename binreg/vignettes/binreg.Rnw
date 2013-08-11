@@ -1,0 +1,737 @@
+% # binreg package for R (http://www.R-project.org)
+% # Copyright (C) 2013 Bernardo dos Santos, Adriano Polpo, 
+% #                    Carlos A. de B. Pereira.
+% #
+% #    This program is free software: you can redistribute it and/or modify
+% #    it under the terms of the GNU General Public License as published by
+% #    the Free Software Foundation, either version 3 of the License, or
+% #    (at your option) any later version.
+% #
+% #    This program is distributed in the hope that it will be useful,
+% #    but WITHOUT ANY WARRANTY; without even the implied warranty of
+% #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% #    GNU General Public License for more details.
+% #
+% #    You should have received a copy of the GNU General Public License
+% #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+\documentclass[nogin,letterpaper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{caption,subfig}
+\usepackage{bm}
+\usepackage{verbatim}
+\usepackage[round]{natbib}
+
+%Package
+\usepackage{amsfonts,amssymb}
+\usepackage{theorem}
+
+%New symbols
+%\def\Iset{{\mathbb I}}
+\def\Enorm{\textnormal{E}}
+\def\Pr{{\textnormal{Pr}}}
+\def\flink{g_{\bm{\theta}}}
+\def\sign{\textnormal{sign}}
+\def\d{{\textnormal{d}}}
+\newcommand{\codR}[1]{\textnormal{\texttt{#1}}}
+
+%Theorem
+\newtheorem{Theorem}{Theorem}
+\newtheorem{Definition}{Definition}
+\newtheorem{Lemma}{Lemma}
+\newtheorem{Property}{Property}
+{\theorembodyfont{\rmfamily} \newtheorem{Example}{Example}}
+\newtheorem{obs}{Obs}
+
+% \VignetteIndexEntry{binreg}
+
+%opening
+\title{R Package: binreg}
+\author{Bernardo dos Santos \and Adriano Polpo \and Carlos A. de B. Pereira}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  The purpose of this text is to provide a simple explanation about the main features of
+  \verb=binreg= package for \verb=R= language. In short, we give some
+  examples on how to use the package.
+\end{abstract}
+
+{\it Keywords:} binreg, R package, binary regression, categorical data.
+
+\section{Introduction}
+\label{intro}
+
+%\section{Modelos de regressão para dados binários}
+%\label{sec_binreg}
+
+Dados binários são aqueles que admitem dois resultados possíveis para a variável resposta. Estes são utilizados em diversas áreas do conhecimento. Alguns exemplos práticos em que este tipo de resposta aparece são: ({\it i}) concessões de crédito de um banco, aprovado ou não aprovado; ({\it ii}) resultado do diagnóstico de um exame laboratorial, positivo ou negativo; ({\it iii}) intenção de voto de um eleitor em relação ao candidato A, vota ou não vota; ({\it iv}) inspeção de uma peça recém-fabricada, defeituosa ou não defeituosa; ({\it v}) teste da publicidade de um novo produto, vendeu ou não vendeu, etc. Consideramos esses casos como um problema de sucesso e fracasso.
+
+A pesquisa com dados binários intensificou-se a partir da década de 50. Um dos primeiros estudos abordava um problema de uma tabela de contingência $2 \times 2$ aplicado em epidemiologia. Uma revisão sobre o tema está em \cite{Richardson1994}. Muitos trabalhos desenvolvidos nas décadas de 50 e 60 são utilizados até hoje, principalmente na análise descritiva dos dados.
+
+Por muitos anos, a regressão linear normal foi usada para explicar a maioria dos fenômenos aleatórios. Mesmo quando não era razoável assumir normalidade, utilizava-se algum tipo de transformação para alcançar a normalidade desejada. Um dos métodos mais utilizados para este fim é a transformação de Box-Cox \citep{BoxCox1964}.
+
+Com o desenvolvimento computacional a partir da década de 70, alguns modelos que exigiam a utilização de processos iterativos para a estimação dos parâmetros começaram a ser mais utilizados. \cite{Nelder1972} propuseram os modelos lineares generalizados (MLGs), cuja ideia básica consiste em abrir o leque de opções para a distribuição da variável resposta, incluindo as distribuições que pertençam à família exponencial, bem como dar maior flexibilidade para a relação funcional entre a média da variável resposta e a parte linear do modelo.
+
+Sob a perspectiva Bayesiana, \cite{Dey2000a} editaram um livro com trabalhos sobre MLGs. Existem também alguns pacotes para \codR{R} \citep{Rprog} que abordam este assunto, como por exemplo \cite{Martin2011} e \cite{Gelman2013}. Aqui, estamos interessados na parte de regressão binária. Sendo assim, apresentamos na sequência algumas funções de ligação e mostramos como fazer a estimação utilizando o pacote \codR{binreg} \citep{Santos2013}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Funções de Ligação}
+\label{sec_binlig}
+
+Seja $\bm{X} = (\bm{1}, \bm{X_1}, \ldots, \bm{X_r})'$ a matriz de experimento, em que $\bm{1}$ é um vetor com todos seus valores iguais a 1. Denotamos a variável resposta binária pelo vetor $\bm{Y}$. O interesse consiste em modelar a $\Pr[Y_i = 1 \mid \eta_i] = \mu(\eta_i) = \Enorm(Y_i)$ por $\Pr[Y_i = 1 \mid \eta_i] = \flink^{-1}(\eta_i)$, $i=1,\ldots,n$, em que $\bm{\eta} = \bm{\beta}\bm{X}$, $\bm{\beta} = (\beta_0, \beta_1, \ldots, \beta_r)$ são os coeficientes lineares, $\flink(\cdot)$ é a função de ligação e $\bm{\theta}$ é um vetor de parâmetros da função de ligação para as ligações que contém parâmetros. A função de ligação relaciona as covariáveis $\bm{X}$ com a média da resposta $\mu = \Enorm(Y \mid X)$. Neste caso, $\flink^{-1}$ é uma função de distribuição na reta real. A seguir apresentamos as funções de ligação tratadas neste livro.
+
+\begin{description}
+\item[\textsc{Logito:}]
+A distribuição logística tem densidade dada por
+\begin{eqnarray}
+	f(y) = \frac{\exp(y)}{(1+\exp(y))^2}
+\end{eqnarray}
+em que -$\infty < y < \infty$. A função de distribuição é dada por
+\begin{eqnarray}
+	F(y) = \frac{\exp(y)}{1+\exp(y)}.
+	\label{acumulada}
+\end{eqnarray}
+O modelo logístico binomial é obtido substituindo a notação $F(y)$ pela representação da proporção $\mu$ e $y$ pela representação do componente linear ($X\beta$ = $\eta$) na Equação (\ref{acumulada}). Note que, para qualquer valor de $\eta$ no intervalo ($-\infty$; $\infty$), existe um valor de $\mu$ em (0;1). Assim se $\eta$ $\stackrel{}{\rightarrow}-\infty$ temos que $\mu$ $\stackrel{}{\rightarrow} 0$, se $\eta$ $\stackrel{}{\rightarrow}\infty$ temos que $\mu$ $\stackrel{}{\rightarrow} 1$ e para $\eta$ = 0, $\mu$ = 0,5.
+
+O modelo para dados binários com ligação logito é definido por
+\begin{eqnarray}
+	\mu = \flink(\eta) = \frac{\exp(\eta)}{1+\exp(\eta)}
+\end{eqnarray}
+ou, equivalentemente, por
+\begin{eqnarray}
+	\eta = \flink^{-1}(\mu) = \log\left(\frac{\mu}{1-\mu} \right).
+\end{eqnarray}
+
+\item[\textsc{Probito:}]
+A ligação probito é definida por
+\begin{eqnarray}
+	\eta = \flink^{-1}(\mu) = \Phi^{-1}\left(\mu\right)
+\end{eqnarray}
+em que $\Phi(.)$ é a função de distribuição da normal padrão. Vale ressaltar que, para qualquer valor de $\eta$ no intervalo ($-\infty$; $\infty$), há um valor da função probito de $\mu$ no intervalo (0; 1). Observe que para $\eta$ = 0 temos $\mu$ = 0,5.
+
+\item[\textsc{Complementar Log-Log:}]
+A função de ligação complementar log-log é derivada da distribuição do valor extremo e dada por
+\begin{eqnarray}
+	\mu = \flink(\eta) = 1-\exp\left(-\exp(\eta)\right).
+	\label{fcll}
+\end{eqnarray}
+
+\item[\textsc{Prentice:}]
+A função de ligação proposta por \cite{Prentice1976} abrange os modelos logito, probito e algumas ligações assimétricas como casos limites (por exemplo, complementar log-log). Prentice utilizou a função de distribuição do $\log(F_{2m_1,2m_2})$ como função de ligação, em que $F_{2m_1,2m_2}$ é uma variável aleatória com distribuição F-Snedecor com parâmetros $2m_1$ e $2m_2$, dada por
+\begin{eqnarray}
+f(y) = \frac{\exp (ym_1)(1+\exp(y))^{-(m_1 +m_2)}}{{\cal B} (m_1, m_2)},
+\label{eq:prentice}
+\end{eqnarray}
+em que, $\theta = (m_1, m_2)$, ${\cal B}$ representa a função beta. Para $m_1 = m_2 = 1$ obtemos a ligação logito, $m_1$ $\stackrel{}{\rightarrow}$ $\infty$ e $m_2$ $\stackrel{}{\rightarrow}$ $\infty$ obtemos a ligação probito, $m_1 = 1$ e $m_2$ $\stackrel{}{\rightarrow}$ $\infty$ obtemos a ligação do valor mínimo extremo e $m_1$ $\stackrel{}{\rightarrow}$ $\infty$ e $m_2 = 1$ obtemos a ligação do valor máximo extremo.
+
+\item[\textsc{Aranda-Ordaz:}]
+Uma outra transformação importante, proposta por \cite{Aranda-Ordaz1981}, é uma função de ligação uni-paramétrica assimétrica que tem como casos particulares os modelos logito e complementar log-log, dada por
+\begin{eqnarray}
+	\eta = \flink^{-1}(\mu) = \log\left[\frac{(1-\mu)^{-\alpha}-1}{\alpha}\right],
+\end{eqnarray}
+em que, $0 < \mu < 1$, $\theta = \alpha$ e $\alpha$ é uma constante desconhecida. Quando $\alpha$ = 1 temos a ligação logito e $\alpha \stackrel{}{\rightarrow} 0$ temos a ligação complementar log-log.
+
+\item[\textsc{Stukel:}]
+\cite{Stukel1988} definiu uma classe de ligações bi-paramétricas que generaliza o modelo logístico. O modelo proposto por Stukel aproxima várias distribuições importantes, como a probito, a complementar log-log e outras funções de ligação assimétrica. A generalização proposta é
+\begin{eqnarray}
+\log\left(\frac{\mu}{ 1 - \mu}\right)  = h(\eta),
+\end{eqnarray}
+em que $\theta = (a_1, a_2)$ e $h(\eta)$ é uma função não linear estritamente crescente indexada por dois parâmetros de forma $a_1$ e $a_2$. Esta função é definida a seguir.
+
+Para $\eta > 0$
+\begin{equation}
+h(\eta) = \left\{ \begin{array}{ll}
+ \left[\exp\left(a_1 \mid \eta \mid \right) - 1\right] / a_1, & \mbox{para } a_1 > 0 \\
+ \eta, & \mbox{para } a_1=0\\
+ - \left[\log\left(1 - a_1 \mid \eta \mid \right)\right] / a_1, & \mbox{para } a_1<0
+ \end{array}
+ \right. .
+\end{equation}
+
+Para $\eta < 0 $
+\begin{equation}
+h(\eta) = \left\{ \begin{array}{ll}
+ -\left[\exp\left(a_2 \mid \eta \mid \right) - 1\right] / a_2, & \mbox{para}~a_2>0\\
+ \eta, & \mbox{para } a_2=0 \\
+ \left[\log\left(1 -a_2 \mid \eta \mid \right)\right] / a_2, & \mbox{para}~a_2<0
+\end{array}
+\right. .
+\end{equation}
+
+Um detalhe importante sobre o modelo proposto pela Stukel é que, sob prioris uniformes impróprias para os parâmetros $\beta$, a distribuição a posteriori será imprópria \citep{Chen1999c}.
+
+\item[\textsc{Weibull:}] A função de ligação Weibull, proposta por \cite{Caron2009}, pode ser simétrica ou assimétrica. Além disso, as funções de ligação logito, probito e complementar log-log podem ser obtidas como casos limites.
+
+A função de ligação Weibull é definda por
+\begin{equation}
+\label{eq_weib-link}
+\begin{array}{lll}
+\eta = & \flink(\mu) & = \left[-\log\left(1-\mu \right) \right]^{\frac{1}{\gamma}}, \\
+\mu = & \flink^{-1}(\eta) & = 1-\exp\{-\eta^\gamma \},
+\end{array}
+\end{equation}
+em que $\theta = \gamma$, $\gamma > 0$ e $\eta > 0$.
+\end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Estimação}
+\label{sec_binest}
+
+<<tbsinst,eval=FALSE>>=
+install.packages("binreg_VERSION.tar.gz",
+                 repos=NULL,type="source") ## from local file
+install.packages("binreg")  ## or from CRAN
+@ 
+<<<tbs>>=
+library("binreg")
+@
+
+Considere uma amostra de tamanho $n$ de uma varável binária $Y$, com \mbox{$\Pr[Y_i =1] =$} $p_i$ para $i=1, \ldots, n$. Denotamos os dados observados por \mbox{${\cal D} =$} \mbox{$\{n,\bm{Y} = \bm{y},\bm{X} = \bm{x}\}$}, em que \mbox{$\bm{y} =$} \mbox{$(y_1, \ldots, y_n)$} é o vetor observado de \mbox{$\bm{Y} =$} \mbox{$(Y_1, \ldots, Y_n)$} e \mbox{$\bm{x} =$} \mbox{$(\bm{1}, \bm{x_1}, \ldots, \bm{x_r})'$} é a matriz de experimento observada de \mbox{$\bm{X} =$} \mbox{$(\bm{1}, \bm{X_1}, \ldots, \bm{X_r})'$}. A função de verossimilhança pode ser escrita como
+\begin{equation}
+\label{eq_lik}
+L\left(\bm{\beta},\theta \mid {\cal D} \right) \propto \prod\limits_{i=1}^{n} {p_i}^{y_i} (1-p_i)^{1-y_i}
+\end{equation}
+\noindent
+e a função de log-verossimilhança por
+\begin{equation*}
+l\left(\bm{\beta},\theta \mid {\cal D} \right) \propto \sum\limits_{i=1}^{n} \left[ y_i \log(p_i) +(1-y_i) \log(1-p_i) \right].
+\end{equation*}
+Tomando $\flink^{-1}(\eta_i) = p_i$ temos
+\begin{equation}
+\label{eq_log-lik}
+l\left(\bm{\beta},\theta \mid {\cal D} \right) \propto \sum\limits_{i=1}^{n} \left[ y_i \log(\flink^{-1}(\eta_i)) +(1-y_i) \log(1-\flink^{-1}(\eta_i)) \right]
+\end{equation}
+em que $\eta_i$ é o $i$-ésimo elemento do vetor $\bm{\eta} = \bm{\beta}\bm{X}$ e os parâmetros a serem estimados são $\bm{\beta}$ e $\theta$. A densidade a posteriori é dada por
+\begin{equation}
+\label{eq_post}
+p(\bm{\beta}, \theta \mid {\cal D}) \propto L(\bm{\beta}, \theta \mid {\cal D}) p(\bm{\beta}, \theta),
+\end{equation}
+em que $p(\bm{\beta}, \theta)$ é a priori conjunta. Um procedimento de MCMC é utilizado para gerar uma amostra da distribuição a posteriori. O pacote \codR{binreg} tem implementado o modelo estatístico para as funções de ligação descritos na Seção \ref{sec_binlig}. Para a geração da distribuição a posteriori, é utilizado o pacote \codR{LaplacesDemon} \mbox{\citep{Demon2013}}. O uso destes pacotes é apresentado na sequência.
+
+\begin{exemplo}
+O objetivo original desse estudo era obter um inseticida eficaz contra besouros \citep{Bliss1935}. Para isso, 481 besouros foram expostos a diferentes concentrações de dissulfeto de carbono ($CS_2$) durante cinco horas e contou-se o número de insetos mortos. Esse conjunto de dados é conhecido por não ser bem ajustado por modelos simétricos, em particular logito e probito. Por conta disso, é amplamente citado em trabalhos que buscam alternativas a esses modelos. Os dados são apresentados na Tabela \ref{tab_beetle}.
+
+\begin{table}[!ht]
+\addtocounter{equation}{1}
+\centering
+\caption{\label{tab_beetle} Mortalidade de besouros expostos a $CS_2$.}
+\begin{tabular}{ccc}
+\hline
+log(Dose) & \multicolumn{2}{c}{N$^o$ de besouros} \\
+   $CS_2$ & Expostos & Mortos \\
+\hline
+1,6907    &       59 &      6 \\
+1,7242    &       60 &     13 \\
+1,7552    &       62 &     18 \\
+1,7842    &       56 &     28 \\
+1,8113    &       63 &     52 \\
+1,8369    &       59 &     53 \\
+1,8610    &       62 &     61 \\
+1,8839    &       60 &     60 \\
+\hline
+\end{tabular}
+\end{table}
+
+Um ponto importante para a análise Bayesiana é a especificação da distribuição a priori dos parâmetros. Aqui, utilizamos como distribuição a priori aquelas especificadas no pacote \codR{binreg}. Na sequência do exemplo, desenvolvemos a estimação do modelo Aranda-Ordaz, apresentando os códigos em \codR{R}. A estimação dos outros modelos seguem de forma similar.
+
+Desta forma, primeiro precisamos ``carregar'' o pacote \codR{binreg} e digitar os dados:
+<<echo=FALSE>>=
+options(width=60)
+@
+<<example1>>=
+library(binreg)
+
+# Dados referentes a mortalidade de besouros
+# (Bliss, 1935)
+ldose    <- c(1.6907,1.7242,1.7552,1.7842,
+              1.8113,1.8369,1.8610,1.8839)
+expostos <- c(59,60,62,56,63,59,62,60)
+mortos   <- c( 6,13,18,28,52,53,61,60)
+@
+
+O pacote \codR{binreg} foi elaborado para variáveis binárias. Assim, é necessário organizar os dados para que a variável resposta seja zero ou um. Além disso, precisamos de uma formatação especial para utilizar o \codR{LaplacesDemon}. Abaixo, apresentamos o \codR{R} para tratar os dados segundo as características das funções que utilizamos.
+<<example1>>=
+#Formatando os dados
+y <- rep(0,sum(expostos))
+x <- rep(0,sum(mortos))
+k <- 0
+for (j in 1:length(expostos)) {
+  for (i in 1:expostos[j]) {
+    k <- k+1
+    if (i <= mortos[j])
+      y[k] <- 1
+    x[k] <- ldose[j]
+  }
+}
+
+#Modelo Aranda-Ordaz:
+dados <- dataLD(y ~ x, "Aranda")
+@
+A função \codR{dataLD} é parte do pacote \codR{binreg}. Para facilitar o usuário, esta função organiza os dados e apresenta uma sugestão de código para fazer a estimação do modelo.
+
+Agora, temos a variável resposta \codR{y}, a covariável \codR{x} e dados formatados, como o necessário, em \codR{dados}. Para obter a distribuição a posteriori do modelo Aranda-Ordaz via MCMC \citep[para mais detalhes sobre métodos de MCMC veja][]{Gamerman1997}, primeiro, calculamos o máximo a posteriori dos parâmetros para utilizá-los como um valor inicial da cadeia de Markov:
+<<example1>>=
+set.seed(666) # recomenda-se o uso do set.seed para o 
+              # leitor obter resultados similares ao 
+              # do livro.
+
+#Calculando a moda (máximo) a posteriori
+fit.mode <- LaplaceApproximation(Model = ModelAranda(),
+                      parm = GIV(ModelAranda(), dados),
+                      Data = dados,
+                      Iterations = 1000,
+                      Method = "NM")
+@
+em que \codR{Model = ModelAranda()} indica o modelo a ser estimado, \codR{Data = dados} são os dados no padrão da função \codR{LaplacesApproximation}, \codR{parm = GIV(ModelLogit(), data)} é o valor inicial para os parâmetros do modelo, \codR{GIV(ModelLogit(), data)} gera pontos iniciais a partir da distribuição a priori, \codR{Iterations = 1000} é a quantidade máxima de iterações do algoritmo de maximização escolhido e \codR{Method = "NM"} indica o algoritmo de maximização escolhido. Neste caso, foi escolhido o método de Nelder-Mead (\codR{NM}). Mais detalhes podem ser obtidos no \codR{R} executando \codR{help(LaplaceAprroximation)}.
+
+Utilizar o máximo a posteriori como valor inicial dos parâmetros muitas vezes reduz o tamanho do {\it burn-in} necessário, mas não é uma receita que deva ser sempre seguida. Depois, gera-se primeiro o {\it burn-in} (descarte das primeiras amostras da cadeia), que neste caso será de 100.000 (cem mil pontos):
+<<example1>>=
+#Gerando o burn-in
+Initial.Values <- as.initial.values(fit.mode)
+fit.burn <- LaplacesDemon(Model = ModelAranda(),
+                     Data = dados,
+                     Initial.Values = Initial.Values,
+                     Iterations = 100000,
+                     Thinning = 1,
+                     Algorithm = "AM",
+                     Specs = list(Adaptive = 1000,
+                                  Periodicity = 1000))
+@
+em que \codR{Model = ModelAranda()} indica o modelo a ser estimado, \codR{Data = dados} são os dados no padrão da função \codR{LaplacesDemon}, \codR{Initial.Values = Initial.Values} é o valor inicial para os parâmetros do modelo, \codR{Iterations = 100000} é o tamanho da amostra da posteriori (neste caso o {\it burn-in}), \codR{Thinning = 1} é o salto entre cada ponto gerado da posteriori, \codR{Algorithm = "AM"} indica o uso do algoritmo de Metropolis Adaptativo e \codR{Specs = list( Adaptive = 1000, Periodicity = 1000)} indica que o processo adaptativo será realizado após os primeiros \codR{1000} pontos e será atualizado a cada \codR{1000} pontos gerados.
+
+Na segunda etapa, geramos uma amostra de tamanho 1000 da distribuição a posteriori dos parâmetros do modelo, considerando um salto de tamanho 500 entre cada ponto gerado:
+<<example1>>=
+#Gerando amostra da posteriori
+Initial.Values <- as.initial.values(fit.burn)
+fit <- LaplacesDemon(ModelAranda(), Data=dados,
+   Initial.Values, Covar=fit.burn$Covar, 
+   Iterations=500000, Thinning=500, Algorithm="AM",
+   Specs=list(Adaptive=1000, Periodicity=1000))
+@
+
+\begin{obs}
+\label{obs_bin}
+Para a estimação dos outros modelos, basta substituir o nome do modelo na função \codR{dataLD} (isto é, \codR{"Aranda"} por \codR{"logit"}, \codR{"probit"}, \codR{"cloglog"}, \codR{"Weibull"}, \codR{"Prentice"} ou \codR{"Stukel"}) e na função \codR{"LaplacesDemon"} (isto é, \codR{"ModelAranda"} por \codR{"ModelLogit"}, \codR{"ModelProbit"}, \codR{"ModelCloglog"}, \codR{"ModelWeibull"}, \codR{"ModelPrentice"} ou \codR{"ModelStukel"}).
+\end{obs}
+
+A função \codR{Consort(fit)} do pacote \codR{LaplacesDemon} auxilia a verificação da qualidade da geração da amostra da posteriori (isto é, convergência do algoritmo de MCMC), em que podemos verificar a taxa de aceitação, DIC, medidas descritivas dos parâmetros e uma sugestão de comando para utilizar novamente, a fim de obter uma melhor amostra da distribuição a posteriori.
+
+Técnicas gráficas também são importantes para verificar a convergência do algoritmo de MCMC. Por exemplo, o gráfico das médias ergódicas para visualizar se o {\it burn-in} foi grande o suficiente (atingiu a medida estacionária da cadeia de Markov), o gráfico das auto-correlações para verificar se as amostras geradas são independentes e o gráfico da ``série de tempo'' das amostras geradas, verificando se existe uma aleatoriedade na geração. Aqui, analisamos a convergência do algoritmo de MCMC apenas através de técnicas gráficas.
+<<label=fig_aranda_conv,fig=TRUE,height=3,width=3,include=TRUE>>=
+#Gráficos de convergência
+par(mfrow=c(3,3))
+for (i in 1:length(fit$Posterior1[1,])) {
+  plot(fit$Posterior1[,i],type="l",xlab="i",ylab="",
+       main=colnames(fit$Posterior1)[i])
+  plot(cumsum(fit.burn$Posterior1[,i])/
+              seq(1,length(fit.burn$Posterior1[,i]),1),
+       type="l",xlab="i",ylab="Média Ergódica",
+       main=colnames(fit.burn$Posterior1)[i])
+  acf(fit$Posterior1[,i],ylab="Corelação",
+      main=colnames(fit$Posterior1)[i])
+}
+@
+<<echo=FALSE>>=
+par(mfrow=c(1,1))
+@
+A Figura \ref{fig_aranda_conv} apresenta os gráficos para a verificação da convergência do método. Pelos gráficos, entendemos que a amostra gerada é uma amostra aleatória da distribuição a posteriori dos parâmetros. Note que é importante gerar amostras distintas com valores iniciais diferentes, para verificar se a convergência ocorre para as diferentes amostras, isto é, se a geração não é dependente da escolha do valor inicial. Além disso, com várias amostras distintas, é possível calcular algumas medidas da qualidade da convergência, como por exemplo, a estatística de Gelman-Rubin.
+\begin{figure}[!ht]
+\addtocounter{equation}{1}
+\centering
+\includegraphics[scale=0.6]{binreg-fig_aranda_conv}
+\caption{\label{fig_aranda_conv} Gráficos da qualidade da convergência do MCMC para o modelo Aranda-Ordaz.}
+\end{figure}
+
+Uma vez gerada uma amostra da distribuição a posteriori, nós podemos estimar a proporção de besouros mortos por log(Dose). É comum o uso de estimador {\it plug-in} na inferência Bayesiana, entretanto, entendemos que esta não é a forma mais correta. O estimador {\it plug-in} é similar ao feito na análise frequentista com os estimadores de máxima verossimilhança. A ideia por trás do {\it plug-in} é de tomar uma estimativa pontual dos parâmetros (por exemplo, média a posteriori) e ``plugar'' os valores destas no modelo estatístico. Do ponto de vista do estimador de máxima verossimilhança este procedimento é correto, dada a propriedade da invariância do estimador. Entretanto, no caso Bayesiano, ao tomarmos o {\it plug-in} estamos deixando de lado toda a distribuição a posteriori, não aproveitando todo o potencial do método. No código \codR{R} abaixo, nós mostramos como calcular a média a posteriori da proporção de besouros mortos, bem como uma região de credibilidade (que é facilmente obtida). O resultado do código é dado na Figura \ref{fig_aranda}.
+<<label=fig_aranda,fig=TRUE,height=3,width=3,include=TRUE>>=
+#Estimando a propoção de besouros mortos
+aux <- seq(min(ldose)-0.5,max(ldose)+0.5,0.01)
+eixo.y <- matrix(NA,length(fit$Posterior1[,1]),
+                    length(aux))
+for (i in 1:length(fit$Posterior1[,1])) {
+  eixo.y[i,] <- pprentice(fit$Posterior1[i,1]+
+                          fit$Posterior1[i,2]*aux,
+                          c(fit$Posterior1[i,3],
+                            fit$Posterior1[i,4]))
+}
+
+# Gráfico do modelo estimado
+plot(ldose,mortos/expostos,ylim=c(0,1),pch=18,
+     xlab="log(Dose)",ylab="Proporção de mortos",
+     main=paste("Prentice (DIC: ",
+                round(fit$DIC1[3],2),")",sep=""))
+#média a posteriori
+lines(aux,apply(eixo.y,2,mean))
+#região de credibilidade
+lines(aux,apply(eixo.y,2,quantile,probs=0.025),lty=2)
+lines(aux,apply(eixo.y,2,quantile,probs=0.975),lty=2)
+
+legend(1.81,0.2,lty=c(0,1,2),pch=c(18,NA,NA),
+       c("Observado","Média a posteriori","IC de 95%"))
+@
+Note que, para utilizarmos a mediana a posteriori como estimador pontual, basta substituir \codR{mean} por \codR{median}, no comando \codR{lines(aux, apply(eixo.y, 2, mean))}.
+
+\begin{figure}[!ht]
+\addtocounter{equation}{1}
+\centering
+\includegraphics[scale=0.4]{binreg-fig_aranda}
+\caption{\label{fig_aranda} Estimativa da proporção de mortes por log(Dose) utilizando o modelo Aranda-Ordaz.}
+\end{figure}
+
+Como dado na Observação \ref{obs_bin}, a estimação dos outros modelos é bem simples. Em quase todos os casos, não foi necessário nenhuma alteração no tamanho do {\it burn-in} ou do salto, exceto no caso do modelo do Prentice. A Figura \ref{fig_prentice_conv} mostra que o método de MCMC não convergiu. Os gráficos das médias ergódicas não estabilizam (ficam próximos de uma reta constante), a cadeia gerada apresenta uma tendência e existe uma alta correlação entre os pontos amostrais. Tentamos diferentes tamanho e saltos entre as amostras mas não conseguimos convergência, para este conjunto de dados, em nossas tentativas. Um dos motivos para isso é que, apesar de ser um modelo muito interessante, a implementação computacional do modelo proposto por Prentice depende de algumas aproximações o que dificulta a estimação (inclusive a estimação por máxima verossimilhança).
+
+<<label=fig_prentice_conv,fig=TRUE,height=3,width=3,include=FALSE>>=
+#Modelo Prentice:
+dados <- dataLD(y ~ x, "Prentice")
+set.seed(666)
+
+#Calculuando a moda a posteriori
+fit.mode <- LaplaceApproximation(Model = ModelPrentice(),
+                             parm  = GIV(ModelPrentice(), dados),
+                             Data=dados,
+                             Iterations=1000,
+                             Method="NM")
+
+#Gerando o burn-in
+Initial.Values <- as.initial.values(fit.mode)
+fit.burn <- LaplacesDemon(Model     = ModelPrentice(), 
+                     Data           = dados,
+                     Initial.Values = Initial.Values,
+                     Iterations     = 100000,
+                     Thinning       = 1,
+                     Algorithm      = "AM",
+                     Specs          = list(Adaptive = 1000,
+                                           Periodicity = 1000))
+
+#Gerando amostra da posteriori
+Initial.Values <- as.initial.values(fit.burn)
+fit <- LaplacesDemon(ModelPrentice(), Data=dados, Initial.Values,
+   Covar=fit.burn$Covar, Iterations=500000, Thinning=500,
+   Algorithm="AM", Specs=list(Adaptive=1000, Periodicity=1000))
+
+#Gráficos de convergência
+par(mfrow=c(4,3))
+for (i in 1:length(fit$Posterior1[1,])) {
+  plot(cumsum(fit.burn$Posterior1[,i])/
+              seq(1,length(fit.burn$Posterior1[,i]),1),
+       type="l",xlab="i",ylab="Média Ergódica",
+       main=colnames(fit.burn$Posterior1)[i])
+  plot(fit$Posterior1[,i],type="l",xlab="i",ylab="",
+       main=colnames(fit$Posterior1)[i])
+  acf(fit$Posterior1[,i],ylab="Corelação",
+      main=colnames(fit$Posterior1)[i])
+}
+par(mfrow=c(1,1))
+@
+\begin{figure}[!ht]
+\addtocounter{equation}{1}
+\centering
+\includegraphics[scale=0.6]{binreg-fig_prentice_conv}
+\caption{\label{fig_prentice_conv} Gráficos da qualidade da convergência do MCMC para o modelo Prentice ({\it brun-in} de $100.000$ e salto de $500$).}
+\end{figure}
+
+A Tabela \ref{tab_bindic} apresenta o DIC dos modelos estimados, sendo que os modelos Weibull e Aranda-Ordaz foram os que mais próximos ficaram do modelo complementar log-log. Vale ressaltar que é conhecido na literatura que o modelo complementar log-log é um dos melhores, se não o melhor, modelo para estes dados. As figuras \ref{fig_cloglog} a \ref{fig_logit} apresentam as estimativas dos modelos complementar log-log, Weibull, Stukel, probito, logito.
+
+\begin{table}[!ht]
+\addtocounter{equation}{1}
+\centering
+\caption{\label{tab_bindic} DIC dos modelos estimados.}
+\begin{tabular}{cc}
+\hline
+Modelo               & DIC \\
+\hline
+Complementar log-log & 368,61 \\
+Weibull              & 370,60 \\
+Aranda-Ordaz         & 370,81 \\
+Stukel               & 373,24 \\
+Probito              & 375,08 \\
+Logito               & 376,58 \\
+\hline
+\end{tabular}
+\end{table}
+
+<<label=fig_cloglog,fig=TRUE,height=3,width=3,include=FALSE>>=
+#Modelo cloglog:
+dados <- dataLD(y ~ x, "cloglog")
+set.seed(666)
+
+#Calculuando a moda a posteriori
+fit.mode <- LaplaceApproximation(Model = ModelCloglog(),
+                             parm  = GIV(ModelCloglog(), dados),
+                             Data=dados,
+                             Iterations=1000,
+                             Method="NM")
+
+#Gerando o burn-in
+Initial.Values <- as.initial.values(fit.mode)
+fit.burn <- LaplacesDemon(Model     = ModelCloglog(), 
+                     Data           = dados,
+                     Initial.Values = Initial.Values,
+                     Iterations     = 100000,
+                     Thinning       = 1,
+                     Algorithm      = "AM",
+                     Specs          = list(Adaptive = 1000,
+                                           Periodicity = 1000))
+
+#Gerando amostra da posteriori
+Initial.Values <- as.initial.values(fit.burn)
+fit <- LaplacesDemon(ModelCloglog(), Data=dados, Initial.Values,
+   Covar=fit.burn$Covar, Iterations=500000, Thinning=500,
+   Algorithm="AM", Specs=list(Adaptive=1000, Periodicity=1000))
+
+# Gráfico do modelo estimado
+aux <- seq(min(ldose)-0.5,max(ldose)+0.5,0.01)
+eixo.y <- matrix(NA,length(fit$Posterior1[,1]),length(aux))
+for (i in 1:length(fit$Posterior1[,1])) {
+  eixo.y[i,] <- 1-exp(-exp(fit$Posterior1[i,1]+
+                           fit$Posterior1[i,2]*aux))
+}
+plot(ldose,mortos/expostos,ylim=c(0,1),pch=18,xlab="log(Dose)",
+     ylab="Proporção de mortos",
+     main=paste("Complementar log-log (DIC: ",round(fit$DIC1[3],2),")",
+                sep=""))
+lines(aux,apply(eixo.y,2,mean))
+lines(aux,apply(eixo.y,2,quantile,probs=0.025),lty=2)
+lines(aux,apply(eixo.y,2,quantile,probs=0.975),lty=2)
+legend(1.81,0.2,lty=c(0,1,2),pch=c(18,NA,NA),
+       c("Observado","Média a posteriori","IC de 95%"))
+@
+\begin{figure}[!ht]
+\addtocounter{equation}{1}
+\centering
+\includegraphics[scale=0.4]{binreg-fig_cloglog}
+\caption{\label{fig_cloglog} Estimativa da proporção de mortes por log(Dose) utilizando o modelo complementar log-log.}
+\end{figure}
+
+<<label=fig_weibull,fig=TRUE,height=3,width=3,include=FALSE>>=
+#Modelo Weibull:
+dados <- dataLD(y ~ x, "Weibull")
+set.seed(666)
+
+#Calculuando a moda a posteriori
+fit.mode <- LaplaceApproximation(Model = ModelWeibull(),
+                             parm  = GIV(ModelWeibull(), dados),
+                             Data=dados,
+                             Iterations=1000,
+                             Method="NM")
+
+#Gerando o burn-in
+Initial.Values <- as.initial.values(fit.mode)
+fit.burn <- LaplacesDemon(Model     = ModelWeibull(), 
+                     Data           = dados,
+                     Initial.Values = Initial.Values,
+                     Iterations     = 100000,
+                     Thinning       = 1,
+                     Algorithm      = "AM",
+                     Specs          = list(Adaptive = 1000,
+                                           Periodicity = 1000))
+
+#Gerando amostra da posteriori
+Initial.Values <- as.initial.values(fit.burn)
+fit <- LaplacesDemon(ModelWeibull(), Data=dados, Initial.Values,
+   Covar=fit.burn$Covar, Iterations=500000, Thinning=500,
+   Algorithm="AM", Specs=list(Adaptive=1000, Periodicity=1000))
+
+# Gráfico do modelo estimado
+aux <- seq(min(ldose)-0.5,max(ldose)+0.5,0.01)
+eixo.y <- matrix(NA,length(fit$Posterior1[,1]),length(aux))
+for (i in 1:length(fit$Posterior1[,1])) {
+  eixo.y[i,] <- pweib(fit$Posterior1[i,1]+
+                      fit$Posterior1[i,2]*aux,
+                      fit$Posterior1[i,3])
+}
+plot(ldose,mortos/expostos,ylim=c(0,1),pch=18,xlab="log(Dose)",
+     ylab="Proporção de mortos",
+     main=paste("Weibull (DIC: ",round(fit$DIC1[3],2),")",
+                sep=""))
+lines(aux,apply(eixo.y,2,mean))
+lines(aux,apply(eixo.y,2,quantile,probs=0.025),lty=2)
+lines(aux,apply(eixo.y,2,quantile,probs=0.975),lty=2)
+legend(1.81,0.2,lty=c(0,1,2),pch=c(18,NA,NA),
+       c("Observado","Média a posteriori","IC de 95%"))
+@
+\begin{figure}[!ht]
+\addtocounter{equation}{1}
+\centering
+\includegraphics[scale=0.4]{binreg-fig_weibull}
+\caption{\label{fig_weibull} Estimativa da proporção de mortes por log(Dose) utilizando o modelo Weibull.}
+\end{figure}
+
+<<label=fig_stukel,fig=TRUE,height=3,width=3,include=FALSE>>=
+#Modelo Stukel:
+dados <- dataLD(y ~ x, "Stukel")
+set.seed(666)
+
+#Calculuando a moda a posteriori
+fit.mode <- LaplaceApproximation(Model = ModelStukel(),
+                             parm  = GIV(ModelStukel(), dados),
+                             Data=dados,
+                             Iterations=1000,
+                             Method="NM")
+
+#Gerando o burn-in
+Initial.Values <- as.initial.values(fit.mode)
+fit.burn <- LaplacesDemon(Model     = ModelStukel(), 
+                     Data           = dados,
+                     Initial.Values = Initial.Values,
+                     Iterations     = 100000,
+                     Thinning       = 1,
+                     Algorithm      = "AM",
+                     Specs          = list(Adaptive = 1000,
+                                           Periodicity = 1000))
+
+#Gerando amostra da posteriori
+Initial.Values <- as.initial.values(fit.burn)
+fit <- LaplacesDemon(ModelStukel(), Data=dados, Initial.Values,
+   Covar=fit.burn$Covar, Iterations=500000, Thinning=500,
+   Algorithm="AM", Specs=list(Adaptive=1000, Periodicity=1000))
+
+# Gráfico do modelo estimado
+aux <- seq(min(ldose)-0.5,max(ldose)+0.5,0.01)
+eixo.y <- matrix(NA,length(fit$Posterior1[,1]),length(aux))
+for (i in 1:length(fit$Posterior1[,1])) {
+  eixo.y[i,] <- pstukel(fit$Posterior1[i,1]+
+                        fit$Posterior1[i,2]*aux,
+                        c(fit$Posterior1[i,3],
+                          fit$Posterior1[i,4]))
+}
+plot(ldose,mortos/expostos,ylim=c(0,1),pch=18,xlab="log(Dose)",
+     ylab="Proporção de mortos",
+     main=paste("Stukel (DIC: ",round(fit$DIC1[3],2),")",
+                sep=""))
+lines(aux,apply(eixo.y,2,mean))
+lines(aux,apply(eixo.y,2,quantile,probs=0.025),lty=2)
+lines(aux,apply(eixo.y,2,quantile,probs=0.975),lty=2)
+legend(1.81,0.2,lty=c(0,1,2),pch=c(18,NA,NA),
+       c("Observado","Média a posteriori","IC de 95%"))
+@
+\begin{figure}[!ht]
+\addtocounter{equation}{1}
+\centering
+\includegraphics[scale=0.4]{binreg-fig_stukel}
+\caption{\label{fig_stukel} Estimativa da proporção de mortes por log(Dose) utilizando o modelo Stukel.}
+\end{figure}
+
+<<label=fig_probit,fig=TRUE,height=3,width=3,include=FALSE>>=
+#Modelo Probito:
+dados <- dataLD(y ~ x, "probit")
+set.seed(666)
+
+#Calculuando a moda a posteriori
+fit.mode <- LaplaceApproximation(Model = ModelProbit(),
+                             parm  = GIV(ModelProbit(), dados),
+                             Data=dados,
+                             Iterations=1000,
+                             Method="NM")
+
+#Gerando o burn-in
+Initial.Values <- as.initial.values(fit.mode)
+fit.burn <- LaplacesDemon(Model     = ModelProbit(), 
+                     Data           = dados,
+                     Initial.Values = Initial.Values,
+                     Iterations     = 100000,
+                     Thinning       = 1,
+                     Algorithm      = "AM",
+                     Specs          = list(Adaptive = 1000,
+                                           Periodicity = 1000))
+
+#Gerando amostra da posteriori
+Initial.Values <- as.initial.values(fit.burn)
+fit <- LaplacesDemon(ModelProbit(), Data=dados, Initial.Values,
+   Covar=fit.burn$Covar, Iterations=500000, Thinning=500,
+   Algorithm="AM", Specs=list(Adaptive=1000, Periodicity=1000))
+
+# Gráfico do modelo estimado
+aux <- seq(min(ldose)-0.5,max(ldose)+0.5,0.01)
+eixo.y <- matrix(NA,length(fit$Posterior1[,1]),length(aux))
+for (i in 1:length(fit$Posterior1[,1])) {
+  eixo.y[i,] <- pnorm(fit$Posterior1[i,1]+
+                      fit$Posterior1[i,2]*aux)
+}
+plot(ldose,mortos/expostos,ylim=c(0,1),pch=18,xlab="log(Dose)",
+     ylab="Proporção de mortos",
+     main=paste("Probito (DIC: ",round(fit$DIC1[3],2),")",
+                sep=""))
+lines(aux,apply(eixo.y,2,mean))
+lines(aux,apply(eixo.y,2,quantile,probs=0.025),lty=2)
+lines(aux,apply(eixo.y,2,quantile,probs=0.975),lty=2)
+legend(1.81,0.2,lty=c(0,1,2),pch=c(18,NA,NA),
+       c("Observado","Média a posteriori","IC de 95%"))
+@
+\begin{figure}[!ht]
+\addtocounter{equation}{1}
+\centering
+\includegraphics[scale=0.4]{binreg-fig_probit}
+\caption{\label{fig_probit} Estimativa da proporção de mortes por log(Dose) utilizando o modelo probito.}
+\end{figure}
+
+<<label=fig_logit,fig=TRUE,height=3,width=3,include=FALSE>>=
+#Modelo Logito:
+dados <- dataLD(y ~ x, "logit")
+set.seed(666)
+
+#Calculuando a moda a posteriori
+fit.mode <- LaplaceApproximation(Model = ModelLogit(),
+                             parm  = GIV(ModelLogit(), dados),
+                             Data=dados,
+                             Iterations=1000,
+                             Method="NM")
+
+#Gerando o burn-in
+Initial.Values <- as.initial.values(fit.mode)
+fit.burn <- LaplacesDemon(Model     = ModelLogit(), 
+                     Data           = dados,
+                     Initial.Values = Initial.Values,
+                     Iterations     = 100000,
+                     Thinning       = 1,
+                     Algorithm      = "AM",
+                     Specs          = list(Adaptive = 1000,
+                                           Periodicity = 1000))
+
+#Gerando amostra da posteriori
+Initial.Values <- as.initial.values(fit.burn)
+fit <- LaplacesDemon(ModelLogit(), Data=dados, Initial.Values,
+   Covar=fit.burn$Covar, Iterations=500000, Thinning=500,
+   Algorithm="AM", Specs=list(Adaptive=1000, Periodicity=1000))
+
+# Gráfico do modelo estimado
+aux <- seq(min(ldose)-0.5,max(ldose)+0.5,0.01)
+eixo.y <- matrix(NA,length(fit$Posterior1[,1]),length(aux))
+for (i in 1:length(fit$Posterior1[,1])) {
+  eixo.y[i,] <- plogis(fit$Posterior1[i,1]+
+                       fit$Posterior1[i,2]*aux)
+}
+plot(ldose,mortos/expostos,ylim=c(0,1),pch=18,xlab="log(Dose)",
+     ylab="Proporção de mortos",
+     main=paste("Logito (DIC: ",round(fit$DIC1[3],2),")",
+                sep=""))
+lines(aux,apply(eixo.y,2,mean))
+lines(aux,apply(eixo.y,2,quantile,probs=0.025),lty=2)
+lines(aux,apply(eixo.y,2,quantile,probs=0.975),lty=2)
+legend(1.81,0.2,lty=c(0,1,2),pch=c(18,NA,NA),
+       c("Observado","Média a posteriori","IC de 95%"))
+@
+\begin{figure}[!ht]
+\addtocounter{equation}{1}
+\centering
+\includegraphics[scale=0.4]{binreg-fig_logit}
+\caption{\label{fig_logit} Estimativa da proporção de mortes por log(Dose) utilizando o modelo logito.}
+\end{figure}
+\begin{flushright}
+$\blacksquare$
+\end{flushright}
+\end{exemplo}
+
+\section{Remarks}
+
+This ``manual'' describes the basics of the \verb=binreg= package, which is currently
+developed around the estimation methods. We invite the user to the functions'
+help pages (available with the package) for further details.
+
+
+\bibliographystyle{plainnat}
+\bibliography{adriano-bibtex-en}
+
+\end{document}
