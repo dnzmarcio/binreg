@@ -3,11 +3,11 @@ S3method(print, binreg)
 S3method(summary, binreg)
 S3method(logLik, binreg)
 
-export(dprentice,pprentice,qprentice,rpretince,
+export(dprentice,pprentice,qprentice,rprentice,
        daranda,paranda,qaranda,raranda,
        dweib,pweib,qweib,rweib,
        dcweib,pcweib,qcweib,rcweib,
        dstukel,pstukel,qstukel,rstukel,
        binreg,dataLD,ModelLogit,ModelCloglog,
-       ModelProbit,ModelAranda,ModelWeibull
+       ModelProbit,ModelAranda,ModelWeibull,
        ModelCWeibull,ModelPrentice,ModelStukel)
