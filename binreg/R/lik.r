@@ -29,7 +29,7 @@
 .lik.weibull = function(gamma, beta, y, X){
   if (gamma > 0) {
     eta <- X %*% beta
-    eta <- pmax(eta, 0)
+    eta <- pmax(eta, 0.001)
     weibull <- pweib(eta,gamma)
     weibull <- pmin(pmax(weibull, .Machine$double.eps), 1 - .Machine$double.eps)
     return(-sum(dbern(y, weibull, log = TRUE)))
@@ -41,7 +41,7 @@
 .lik.cweibull = function(gamma, beta, y, X){
   if (gamma > 0) {
     eta <- X %*% beta
-    eta <- pmin(eta, 0)
+    eta <- pmin(eta, -0.001)
     cweibull <- pcweib(eta,gamma)
     cweibull <- pmin(pmax(cweibull, .Machine$double.eps), 1 - .Machine$double.eps)
     return(-sum(dbern(y, cweibull, log = TRUE)))
@@ -51,7 +51,7 @@
 }
 
 .lik.prentice <- function(m = c(1, 1), beta, y, X) {
-  if(all(m > 0)){
+  if(all(m > 0.001)) {
     eta <- X %*% beta
     prentice <- pprentice(eta, m)
     prentice <- pmin(pmax(prentice, .Machine$double.eps), 1 - .Machine$double.eps)
