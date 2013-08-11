@@ -37,8 +37,8 @@
   for x < 0 and gamma > 0.
 }
 \value{
-  `dcweib' gives the density, `pcweib' gives the distribution 
-  function, `qcweib' gives the quantile function, and `rcweib'
+  'dcweib' gives the density, 'pcweib' gives the distribution 
+  function, 'qcweib' gives the quantile function, and 'rcweib'
   generates random deviates.
 }
 \references{
