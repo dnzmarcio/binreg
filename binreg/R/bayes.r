@@ -107,7 +107,7 @@ ModelLogit <- function(parm, data, beta.mean = 0, beta.var = 1000){
     LL <- sum(dbern(data$y, mu, log = TRUE))
     ###log-posterior
     LP <- LL + sum(beta.prior)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = mu, parm = parm)
     return(Modelout)
   }
   return(Model)
@@ -125,7 +125,7 @@ ModelProbit <- function(parm, data, beta.mean = 0, beta.var = 1000){
     LL <- sum(dbern(data$y, mu, log = TRUE))
     ###log-posterior
     LP <- LL + sum(beta.prior)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = mu, parm = parm)
     return(Modelout)
   }
   return(Model)
@@ -143,7 +143,7 @@ ModelCloglog <- function(parm, data, beta.mean = 0, beta.var = 1000) {
     LL <- sum(dbern(data$y, mu, log = TRUE))
     ###log-posterior
     LP <- LL + sum(beta.prior)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = mu, parm = parm)
     return(Modelout)
   }
   return(Model)
@@ -157,13 +157,17 @@ ModelAranda <- function(parm, data, beta.mean = 0, beta.var = 1000,
     alpha <- parm[data$J + 1]
     ###priors
     beta.prior <- dnormv(beta, beta.mean, beta.var, log = TRUE)
-    alpha.prior <- dhalfnorm(alpha, alpha.scale, log = TRUE)
+    if (alpha > 0.001) {
+      alpha.prior <- dhalfnorm(alpha, alpha.scale, log = TRUE)
+    } else {
+      alpha.prior <- log(0)
+    }
     ###logLik
     LL <- -.lik.aranda(alpha, beta, data$y, data$X)
     ###log-posterior
     LP <- LL + sum(beta.prior) + alpha.prior
     mu <- paranda(data$X %*% beta,alpha)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = mu, parm = parm)
     return(Modelout)
    }
    return(Model)
@@ -177,13 +181,17 @@ ModelWeibull <- function(parm, data, beta.mean = 0, beta.var = 1000,
     gamma <- parm[data$J + 1]
     ###priors
     beta.prior <- dnormv(beta, beta.mean, beta.var, log = TRUE)
-    gamma.prior <- dhalfnorm(gamma, gamma.scale, log = TRUE)
+    if (gamma > 0.001) {
+      gamma.prior <- dhalfnorm(gamma, gamma.scale, log = TRUE)
+    } else {
+      gamma.prior <- log(0)
+    }
     ###logLik
     LL <- -.lik.weibull(gamma, beta, data$y, data$X)
     ###log-posterior
     LP <- LL + sum(beta.prior) + gamma.prior 
     mu <- pweib(data$X %*% beta,gamma)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = mu, parm = parm)
     return(Modelout)
   }
   return(Model)
@@ -197,13 +205,17 @@ ModelCWeibull <- function(parm, data, beta.mean = 0, beta.var = 1000,
     gamma <- parm[data$J + 1]
     ###priors
     beta.prior <- dnormv(beta, beta.mean, beta.var, log = TRUE)
-    gamma.prior <- dhalfnorm(gamma, gamma.scale, log = TRUE)
+    if (gamma > 0.001) {
+      gamma.prior <- dhalfnorm(gamma, gamma.scale, log = TRUE)
+    } else {
+      gamma.prior <- log(0)
+    }
     ###logLik
     LL <- -.lik.cweibull(gamma, beta, data$y, data$X)
     ###log-posterior
     LP <- LL + sum(beta.prior) + gamma.prior 
     mu <- pcweib(data$X %*% beta,gamma)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = mu, parm = parm)
     return(Modelout)
   }
   return(Model)
@@ -217,13 +229,21 @@ ModelPrentice <- function(parm, data, beta.mean = 0, beta.var = 1000,
     m <- parm[c(data$J + 1, data$J + 2)]
     ###priors
     beta.prior <- dnormv(beta, beta.mean, beta.var, log = TRUE)
-    m.prior <- dhalfnorm(m, m.scale, log = TRUE)
+    if (all(m > 0)) {
+      m.prior <- dhalfnorm(m, m.scale, log = TRUE)
+    } else {
+      m.prior <- log(0)
+    }
     ###logLik
     LL <- -.lik.prentice(m, beta, data$y, data$X)
     ###log-posterior
     LP <- LL + sum(beta.prior) + sum(m.prior)
-    mu <- pprentice(data$X %*% beta,m)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
+    if (all(m > 0)) {
+      mu <- pprentice(data$X %*% beta,m)
+    } else {
+      mu <- rep(0,length(data$X %*% beta))
+    }
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = mu, parm = parm)
     return(Modelout)
   }
   return(Model)
@@ -243,7 +263,7 @@ ModelStukel <- function(parm, data, beta.mean = 0, beta.var = 1000,
     ###log-posterior
     LP <- LL + sum(beta.prior) + sum(alpha.prior)
     mu <- pstukel(data$X %*% beta,alpha)
-    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = rbern(length(mu),mu), parm = parm)
+    Modelout <- list(LP = LP, Dev = -2*LL, Monitor = LP, yhat = mu, parm = parm)
     return(Modelout)
   }
   return(Model)
