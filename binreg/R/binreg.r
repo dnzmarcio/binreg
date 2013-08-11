@@ -120,7 +120,9 @@ binreg <- function(formula, link = c("Aranda-Ordaz", "Weibull", "CWeibull", "Pre
       if ((i >= 10) && (abs(fit$aic - aic) < tol) &&
         (all(flag[(length(flag)-10):length(flag)] > 0))){
         warning("Link parameter is too large. Log-log estimate returned.")
-        fit <- glm(formula, binomial("loglog"), data, na.action = na.action)
+### It is necessary to implement the loglog link
+#        fit <- glm(formula, binomial("loglog"), data, na.action = na.action)
+        fit <- glm(formula, binomial("cloglog"), data, na.action = na.action)
         fit$formula <- formula
         fit$call <- call
         return(fit)
