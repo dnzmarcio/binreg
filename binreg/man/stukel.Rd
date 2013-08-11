@@ -45,13 +45,13 @@
         log(1 + alpha[2]*eta)/alpha[2]   if (x < 0) and (alpha[2] < 0)
 }
 \value{
-  `dstukel' gives the density, `pstukel' gives the distribution 
-  function, `qstukel' gives the quantile function, and `rstukel'
+  'dstukel' gives the density, 'pstukel' gives the distribution 
+  function, 'qstukel' gives the quantile function, and 'rstukel'
   generates random deviates.
 }
 \references{
   Stukel, T. A. (1988) \emph{Generalized logistic models}. Journal of 
-  the American Statistical Association, pp. 426–431.
+  the American Statistical Association, pp. 426-431.
 }
 \examples{
   set.seed(1234)
